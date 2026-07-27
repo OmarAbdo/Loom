@@ -1,19 +1,112 @@
+# =============================================================================
+# skaffold.yaml — local Kubernetes dev orchestration for the ticketing system
+# =============================================================================
+#
+# WHAT SKAFFOLD DOES FOR US
+# -------------------------
+# `skaffold dev` watches source files, rebuilds the affected container image(s),
+# redeploys the Kubernetes manifests under infra/k8s, and streams logs — giving
+# us a hot-reload loop across a *multi-service* cluster. It is the single command
+# that stands the whole system up on the local Docker Desktop Kubernetes cluster.
+#
+# TWO REBUILD STRATEGIES, COMBINED
+# --------------------------------
+#   1. Image rebuild  — when a file OUTSIDE the `sync` rules changes (e.g.
+#      package.json), Skaffold rebuilds the Docker image and redeploys the pod.
+#   2. File sync      — when a file matching a `sync` rule changes (our .ts/.js
+#      source), Skaffold copies the file straight into the running container
+#      instead of rebuilding. Combined with ts-node-dev's `--poll` inside the
+#      container, edits reflect in ~1s without an image rebuild. This is why
+#      each service's dev command uses ts-node-dev with polling.
+#
+# IMAGE NAMING
+# ------------
+# Images are prefixed `456738/` (Omar's Docker Hub namespace). `push: false`
+# keeps images local — Docker Desktop's Kubernetes shares the daemon's image
+# store, so there is no registry round-trip in dev.
+#
+# NOTE ON MIGRATION STATE
+# -----------------------
+# During the NATS->Kafka and Mongo->Postgres migration, every artifact below
+# still points at the pre-migration service source. Each service is migrated in
+# its own phase; this file's artifact list is stable across those phases because
+# only the *contents* of each service change, not its build wiring.
+# =============================================================================
+
 apiVersion: skaffold/v4beta11
 kind: Config
+
 manifests:
   rawYaml:
+    # Glob every manifest in infra/k8s. Ordering is not significant for our
+    # resources (Deployments/StatefulSets/Services reconcile independently).
     - infra/k8s/*
+
 deploy:
   kubectl: {}
+
 build:
   local:
+    # Do not push to a remote registry; Docker Desktop's k8s reads the local
+    # daemon image store directly.
     push: false
   artifacts:
+    # ---- auth: user accounts, signup/signin, JWT issuance ------------------
     - image: 456738/auth
       context: auth
       docker:
         dockerfile: Dockerfile
       sync:
-       manual:
-         - src: 'src/**/*.ts'
-           dest: .
+        manual:
+          - src: 'src/**/*.ts'
+            dest: .
+
+    # ---- tickets: create/list/update tickets, source of ticket:* events ----
+    - image: 456738/tickets
+      context: tickets
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: 'src/**/*.ts'
+            dest: .
+
+    # ---- orders: order lifecycle, saga initiator (order:* events) ----------
+    - image: 456738/orders
+      context: orders
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: 'src/**/*.ts'
+            dest: .
+
+    # ---- expiration: Bull/Redis delayed job -> expiration:complete ---------
+    - image: 456738/expiration
+      context: expiration
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: 'src/**/*.ts'
+            dest: .
+
+    # ---- payments: Stripe charge, payment:created --------------------------
+    - image: 456738/payments
+      context: payments
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: 'src/**/*.ts'
+            dest: .
+
+    # ---- client: Next.js UI (syncs .js, not .ts) ---------------------------
+    - image: 456738/client
+      context: client
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: '**/*.js'
+            dest: .
