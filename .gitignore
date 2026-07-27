@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+.next/
+
+# Tooling / runtime logs (MCP tool logs, not part of the project)
+logs/
+
+# OS junk
+.DS_Store
+
+# Env / secrets — never commit
+.env
+.env.*
