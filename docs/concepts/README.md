@@ -7,7 +7,7 @@ Deep dives on the technologies and patterns in this system. Each is written to
 | ------- | ------ | -------- |
 | [Optimistic Concurrency & the `version` field](optimistic-concurrency.md) | ✅ written | Phase 0 |
 | Kafka & KRaft (topics, partitions, consumer groups, keys, offsets) | ☐ planned | Phase 3 |
-| Avro & the Schema Registry (wire format, compatibility, tolerant reader) | ☐ planned | Phase 1 |
+| [Avro & the Schema Registry (wire format, compatibility, tolerant reader)](avro-and-schema-registry.md) | ✅ written | Phase 1 |
 | Kubernetes primitives used here (Deployment vs StatefulSet, Service, Ingress, Secret) | ☐ planned | Phase 3–4 |
 | Choreographed sagas & compensating actions | ☐ planned | Phase 6 |
 

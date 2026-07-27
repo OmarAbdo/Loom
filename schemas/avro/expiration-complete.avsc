@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "ExpirationComplete",
+  "namespace": "ticketing.expiration",
+  "doc": "Emitted by the expiration service when an order's reservation window has elapsed (the Bull delayed job fired). Topic: 'expiration:complete'. Consumer: orders (cancels the order if it is still awaiting payment, which triggers order:cancelled - the saga's compensating path).",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "doc": "UUID of the order whose reservation expired."
+    }
+  ]
+}

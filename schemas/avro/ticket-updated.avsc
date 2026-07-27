@@ -1,0 +1,37 @@
+{
+  "type": "record",
+  "name": "TicketUpdated",
+  "namespace": "ticketing.tickets",
+  "doc": "Emitted by the tickets service when a ticket changes (price/title edit) or when it is reserved/released by an order (orderId set/cleared). Topic: 'ticket:updated'. Consumers: orders (updates its local ticket replica).",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "UUID of the ticket."
+    },
+    {
+      "name": "version",
+      "type": "int",
+      "doc": "Optimistic-concurrency version after the update. See docs/concepts/optimistic-concurrency.md."
+    },
+    {
+      "name": "title",
+      "type": "string"
+    },
+    {
+      "name": "price",
+      "type": "double",
+      "doc": "See note on money-as-double in ticket-created.avsc."
+    },
+    {
+      "name": "userId",
+      "type": "string"
+    },
+    {
+      "name": "orderId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "UUID of the order currently reserving this ticket, or null if the ticket is not reserved. Nullable union: this is how a reservation (set) and a release (cleared back to null) are both expressed."
+    }
+  ]
+}

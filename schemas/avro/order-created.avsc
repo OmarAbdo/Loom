@@ -1,0 +1,56 @@
+{
+  "type": "record",
+  "name": "OrderCreated",
+  "namespace": "ticketing.orders",
+  "doc": "Emitted by the orders service when a user places an order, reserving a ticket. This event STARTS the purchase saga. Topic: 'order:created'. Consumers: tickets (marks ticket reserved), expiration (schedules the timeout job), payments (records the order so it can be paid).",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "UUID of the order."
+    },
+    {
+      "name": "version",
+      "type": "int",
+      "doc": "Order optimistic-concurrency version. See docs/concepts/optimistic-concurrency.md."
+    },
+    {
+      "name": "status",
+      "type": {
+        "type": "enum",
+        "name": "OrderStatus",
+        "namespace": "ticketing.orders",
+        "doc": "Lifecycle state of an order. NOTE: Avro enum symbols cannot contain ':' so the wire values used elsewhere ('awaiting:payment') are encoded here as valid symbols; the mapping to/from the OrderStatus string enum is handled in code (schemas/types/order-status.ts).",
+        "symbols": ["created", "cancelled", "awaiting_payment", "complete"]
+      },
+      "doc": "Order status at creation time (normally 'created')."
+    },
+    {
+      "name": "userId",
+      "type": "string",
+      "doc": "UUID of the user who placed the order."
+    },
+    {
+      "name": "expiresAt",
+      "type": "string",
+      "doc": "ISO-8601 timestamp string at which the reservation expires. Mirrors the pre-migration wire shape (string, not a timestamp logical type). The expiration service computes the Bull job delay from this."
+    },
+    {
+      "name": "ticket",
+      "type": {
+        "type": "record",
+        "name": "OrderCreatedTicket",
+        "namespace": "ticketing.orders",
+        "doc": "The subset of ticket data the order carries. Consumers use id to locate the ticket and price for downstream charge math.",
+        "fields": [
+          { "name": "id", "type": "string" },
+          {
+            "name": "price",
+            "type": "double",
+            "doc": "See note on money-as-double in ticket-created.avsc."
+          }
+        ]
+      }
+    }
+  ]
+}

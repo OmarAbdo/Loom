@@ -1,0 +1,30 @@
+{
+  "type": "record",
+  "name": "OrderCancelled",
+  "namespace": "ticketing.orders",
+  "doc": "Emitted by the orders service when an order is cancelled - either by the user, or as the COMPENSATING ACTION of the purchase saga when the reservation expires unpaid. Topic: 'order:cancelled'. Consumers: tickets (releases the ticket, clears orderId), payments (marks its order cancelled to reject late payment).",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "UUID of the cancelled order."
+    },
+    {
+      "name": "version",
+      "type": "int",
+      "doc": "Order optimistic-concurrency version after cancellation."
+    },
+    {
+      "name": "ticket",
+      "type": {
+        "type": "record",
+        "name": "OrderCancelledTicket",
+        "namespace": "ticketing.orders",
+        "doc": "Identifies the ticket to release.",
+        "fields": [
+          { "name": "id", "type": "string" }
+        ]
+      }
+    }
+  ]
+}

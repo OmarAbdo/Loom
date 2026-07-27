@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "PaymentCreated",
+  "namespace": "ticketing.payments",
+  "doc": "Emitted by the payments service when a Stripe charge for an order succeeds. Topic: 'payment:created'. Consumer: orders (marks the order Complete, which is the saga's success terminal state and makes the order un-cancellable).",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "UUID of the payment record."
+    },
+    {
+      "name": "orderId",
+      "type": "string",
+      "doc": "UUID of the order that was paid."
+    },
+    {
+      "name": "stripeId",
+      "type": "string",
+      "doc": "Identifier of the Stripe charge, for reconciliation/audit."
+    }
+  ]
+}

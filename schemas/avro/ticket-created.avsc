@@ -1,0 +1,33 @@
+{
+  "type": "record",
+  "name": "TicketCreated",
+  "namespace": "ticketing.tickets",
+  "doc": "Emitted by the tickets service when a new ticket is created. Topic: 'ticket:created'. Consumers: orders (maintains a local ticket replica).",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "UUID of the ticket (its primary key in the tickets service)."
+    },
+    {
+      "name": "version",
+      "type": "int",
+      "doc": "Optimistic-concurrency version. Starts at 0 on creation. Consumers apply an event only if it is the immediate successor of the version they hold. See docs/concepts/optimistic-concurrency.md."
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "doc": "Human-readable ticket title."
+    },
+    {
+      "name": "price",
+      "type": "double",
+      "doc": "Ticket price. NOTE: represented as a double to mirror the pre-migration wire shape (JS number). Money-as-double is a known imprecision; revisiting it (integer cents or Avro decimal logical type) is deferred so this transport migration does not also change money math across services."
+    },
+    {
+      "name": "userId",
+      "type": "string",
+      "doc": "UUID of the user who owns/created the ticket."
+    }
+  ]
+}
