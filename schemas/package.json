@@ -3,13 +3,22 @@
   "version": "0.1.0",
   "description": "Avro event schemas and their TypeScript contracts for the ticketing system. The .avsc files are the runtime wire contract (registered in the Confluent Schema Registry); the types/ interfaces are the compile-time mirror kept in sync by a parity guard test.",
   "license": "ISC",
+  "main": "./dist/types/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "avro/**/*"
+  ],
   "scripts": {
+    "clean": "rimraf ./dist",
+    "build": "npm run clean && tsc",
     "register": "ts-node src/register.ts",
     "test": "jest"
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": ["/node_modules/", "/dist/"]
   },
   "dependencies": {
     "@confluentinc/schemaregistry": "^1.0.0",
@@ -19,6 +28,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "jest": "^30.4.2",
+    "rimraf": "^6.1.3",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"

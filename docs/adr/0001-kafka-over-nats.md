@@ -49,18 +49,31 @@ Kafka itself using a Raft quorum, so a modern Kafka deployment is a single syste
 not two. Since the goal is *latest* Kafka and a lean local cluster, KRaft is both
 the current default and one fewer moving part.
 
-### Why the Confluent client (native API), not KafkaJS
+### Why the Confluent client — and which of its two APIs
 
-- **KafkaJS** was the long-time community client but is **unmaintained** (no
-  release since Feb 2023).
+- **KafkaJS** (the standalone library) was the long-time community client but is
+  **unmaintained** (no release since Feb 2023). We are not using that library.
 - **`@confluentinc/kafka-javascript`** is Confluent's official, actively
   maintained client (a wrapper over the battle-tested C library `librdkafka`).
-- The Confluent client exposes *two* APIs: its own native API, and a
-  "KafkaJS-compatible" shim intended to let **existing** KafkaJS codebases migrate
-  without a rewrite. **We start fresh, so we use the native API** — the compat
-  shim solves a problem (legacy KafkaJS code) we don't have. It's mentioned only
-  because tutorials and search results reference KafkaJS heavily; we are
-  deliberately not using it.
+- The Confluent client exposes *two* API styles on top of the same librdkafka
+  core:
+  1. a **callback API** (node-rdkafka-style: `producer.produce(...)`,
+     event-driven `consumer.on('data')`, `consumer.commit(m)`), and
+  2. a **promisified API** (`producer.send({...})`,
+     `consumer.run({ eachMessage })`, `await consumer.commitOffsets([...])`).
+- **We use the promisified API.** Confluent explicitly **recommends the
+  promisified API for new projects** — it is their idiomatic, ergonomic surface,
+  and its `async eachMessage` + `commitOffsets` shape maps directly onto our base
+  Consumer's "handle then manually commit" need. The callback API would force
+  awkward event-plumbing into the base class for no benefit.
+
+> **Naming caution (corrected from an earlier draft of this ADR):** the
+> promisified API is *shaped like* KafkaJS and is reached via the client's
+> `.KafkaJS` namespace, so it's easy to conflate "use the promisified API" with
+> "use a legacy-compat shim." They are not the same. The promisified API is the
+> **recommended interface for greenfield code**, not a migration-only shim. What
+> we are *not* doing is depending on the standalone, unmaintained `kafkajs`
+> package. We configure the client with librdkafka config keys throughout.
 
 ## Consequences
 

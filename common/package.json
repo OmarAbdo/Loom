@@ -1,0 +1,43 @@
+{
+  "name": "@omarabdo/ticketing-common",
+  "version": "0.1.0",
+  "description": "Infra-only shared library for the ticketing services: HTTP error types, Express middleware, and the Kafka base Publisher/Consumer (Avro-serdes aware) + kafka-wrapper. Contains NO domain/event contracts — those live in @omarabdo/ticketing-schemas (see ADR-0004).",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "files": [
+    "build/**/*"
+  ],
+  "license": "ISC",
+  "scripts": {
+    "clean": "rimraf ./build",
+    "build": "npm run clean && tsc",
+    "test": "jest"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": ["/node_modules/", "/build/"]
+  },
+  "dependencies": {
+    "@confluentinc/kafka-javascript": "^1.0.0",
+    "@confluentinc/schemaregistry": "^1.10.0",
+    "@omarabdo/ticketing-schemas": "file:../schemas",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "peerDependencies": {
+    "express": "^5.0.0",
+    "express-validator": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.0.0",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.2",
+    "jest": "^30.4.2",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.4.11",
+    "typescript": "^6.0.3"
+  }
+}

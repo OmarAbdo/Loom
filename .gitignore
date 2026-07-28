@@ -1,7 +1,8 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build output (regenerated via `npm run build`; schemas must be built before
+# common/services can resolve it — build order, not a committed artifact)
 build/
 dist/
 .next/

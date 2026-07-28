@@ -1,0 +1,17 @@
+import { CustomError } from './custom-error';
+
+/** 500 — the service could not reach its database. */
+export class DatabaseConnectionError extends CustomError {
+  statusCode = 500;
+  reason = 'Error connecting to database';
+
+  constructor() {
+    super('Error connecting to db');
+
+    Object.setPrototypeOf(this, DatabaseConnectionError.prototype);
+  }
+
+  serializeErrors() {
+    return [{ message: this.reason }];
+  }
+}
