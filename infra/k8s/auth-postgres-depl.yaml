@@ -1,0 +1,71 @@
+# =============================================================================
+# auth Postgres — the auth service's private database (ADR-0003)
+# =============================================================================
+#
+# One Postgres per service: each service owns its data and no other service
+# touches these tables. A StatefulSet (not a Deployment) because Postgres owns
+# durable data on disk and needs a stable identity — same reasoning as Kafka
+# (see docs/concepts/kubernetes-primitives.md).
+#
+# DEV SIMPLIFICATIONS: single replica, trust auth via POSTGRES_HOST_AUTH_METHOD
+# is NOT used — we set a password from a Secret. PLAINTEXT in-cluster only.
+# The connection string the service uses is assembled in the service's env
+# (DATABASE_URL) in its deployment manifest.
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: auth-postgres
+spec:
+  serviceName: auth-postgres-srv
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-postgres
+  template:
+    metadata:
+      labels:
+        app: auth-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: auth
+            - name: POSTGRES_USER
+              value: auth
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            # Store data under a subdirectory so the mounted volume root
+            # (which may contain lost+found) doesn't conflict with initdb.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: auth-postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: auth-postgres-data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-postgres-srv
+spec:
+  selector:
+    app: auth-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

@@ -73,10 +73,15 @@ conflation (it's correct and unwinding it is a large change) but flag it as a
 
 ## Where to see it in the code
 
-- Producer side: the `version` column + guarded `UPDATE` in each service's repo.
-- Event side: `version` field in every event's Avro schema.
+- Producer side: the `version` column + guarded `UPDATE` in each service's repo —
+  e.g. `tickets/src/repositories/ticket-repository.ts` `update()` (throws
+  `ConcurrencyError` on a 0-row result) and `orders`/`payments` order repos.
+- Event side: `version` field in every event's Avro schema (`schemas/avro/`).
 - Consumer side: `findByEvent`-style "predecessor" lookup in replica-holding
-  services (notably `orders`).
+  services — `orders/src/repositories/ticket-repository.ts` and
+  `payments/src/repositories/order-repository.ts` (`findByEvent` = `WHERE version = $ - 1`).
+- Verified: `tickets` repo tests include a "two concurrent writers, exactly one
+  wins" case against real Postgres — see [postgres-and-kysely.md](postgres-and-kysely.md).
 
 ## Mental model
 

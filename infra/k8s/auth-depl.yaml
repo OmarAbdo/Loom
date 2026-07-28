@@ -23,6 +23,14 @@ spec:
                 secretKeyRef:
                   name: jwt-secret
                   key: JWT_KEY
+            # Postgres connection (ADR-0003); password from Secret, interpolated.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: 'postgresql://auth:$(POSTGRES_PASSWORD)@auth-postgres-srv:5432/auth'
 
 ---
 apiVersion: v1

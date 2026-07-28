@@ -9,6 +9,7 @@ Deep dives on the technologies and patterns in this system. Each is written to
 | [Kafka & KRaft (topics, partitions, consumer groups, keys, offsets)](kafka-kraft.md) | ✅ written | Phase 3 |
 | [Avro & the Schema Registry (wire format, compatibility, tolerant reader)](avro-and-schema-registry.md) | ✅ written | Phase 1 |
 | [Kubernetes primitives used here (Deployment vs StatefulSet, Service, Ingress, Secret)](kubernetes-primitives.md) | ✅ written | Phase 3 |
+| [Postgres & Kysely (the data layer, repos, migrations, Testcontainers)](postgres-and-kysely.md) | ✅ written | Phase 4 |
 | Choreographed sagas & compensating actions | ☐ planned | Phase 6 |
 
 Concept docs are written **when the corresponding code is built**, so they describe

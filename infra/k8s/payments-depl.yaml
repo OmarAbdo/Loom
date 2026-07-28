@@ -28,9 +28,14 @@ spec:
               value: 'payments'
             - name: SCHEMA_REGISTRY_URL
               value: 'http://schema-registry-srv:8081'
-            # MONGO_URI is replaced by DATABASE_URL (Postgres) in Phase 4.
-            - name: MONGO_URI
-              value: 'mongodb://payments-mongo-srv:27017/payments'
+            # Postgres connection (ADR-0003); password from Secret, interpolated.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: 'postgresql://payments:$(POSTGRES_PASSWORD)@payments-postgres-srv:5432/payments'
             - name: JWT_KEY
               valueFrom:
                 secretKeyRef:

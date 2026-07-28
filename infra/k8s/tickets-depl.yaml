@@ -33,9 +33,16 @@ spec:
             # Schema Registry endpoint for Avro serdes.
             - name: SCHEMA_REGISTRY_URL
               value: 'http://schema-registry-srv:8081'
-            # MONGO_URI is replaced by DATABASE_URL (Postgres) in Phase 4.
-            - name: MONGO_URI
-              value: 'mongodb://tickets-mongo-srv:27017/tickets'
+            # Postgres connection (ADR-0003). POSTGRES_PASSWORD is sourced from
+            # a Secret and interpolated into DATABASE_URL via $(...) expansion,
+            # so no credential is hardcoded in the manifest.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: 'postgresql://tickets:$(POSTGRES_PASSWORD)@tickets-postgres-srv:5432/tickets'
             - name: JWT_KEY
               valueFrom:
                 secretKeyRef:

@@ -1,0 +1,60 @@
+# =============================================================================
+# orders Postgres — the orders service's private database (ADR-0003).
+# Same pattern as auth-postgres-depl.yaml (StatefulSet + PVC + Service); see
+# that file's header for the full rationale.
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: orders-postgres
+spec:
+  serviceName: orders-postgres-srv
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-postgres
+  template:
+    metadata:
+      labels:
+        app: orders-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: orders
+            - name: POSTGRES_USER
+              value: orders
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: orders-postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: orders-postgres-data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-postgres-srv
+spec:
+  selector:
+    app: orders-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
