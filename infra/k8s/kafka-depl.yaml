@@ -1,0 +1,128 @@
+# =============================================================================
+# Kafka (KRaft mode) — single-node dev broker
+# =============================================================================
+#
+# WHY A STATEFULSET (not a Deployment)
+# ------------------------------------
+# Kafka is stateful: it stores the event log and its own KRaft metadata on disk,
+# and each node needs a STABLE network identity (its advertised listener must be
+# a hostname other pods can resolve, and it must be the same across restarts).
+# A StatefulSet gives us both: a stable pod name (`kafka-0`) and stable per-pod
+# DNS via a headless Service (`kafka-0.kafka-srv`), plus a PersistentVolumeClaim
+# that survives pod restarts. A Deployment gives none of these.
+#
+# WHY KRAFT (no ZooKeeper) — see ADR-0001
+# ---------------------------------------
+# KRaft folds cluster metadata/consensus into Kafka itself via a Raft quorum, so
+# there is no separate ZooKeeper to run. In "combined" mode a single process is
+# BOTH the broker (serves data) and the controller (owns metadata + the Raft
+# quorum). For a single-node dev cluster that is exactly what we want.
+#
+# LISTENERS (the fiddly part)
+# ---------------------------
+# We define three listeners:
+#   - PLAINTEXT   :9092  — how OTHER PODS (services, schema registry) reach the
+#                          broker. Its ADVERTISED address must be the stable pod
+#                          DNS name `kafka-0.kafka-srv`, because that is what
+#                          clients are told to connect to after bootstrap.
+#   - CONTROLLER  :9093  — the KRaft controller quorum listener (internal).
+#   - Note: single node, so the quorum voter is just `1@kafka-0.kafka-srv:9093`.
+#
+# This is a DEV cluster: PLAINTEXT (no TLS/SASL), replication factor 1, one
+# partition default. Production would add TLS, auth, multiple nodes, and RF>=3.
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+spec:
+  serviceName: kafka-srv        # headless service that gives stable pod DNS
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:3.9.0
+          ports:
+            - containerPort: 9092   # client / inter-pod
+            - containerPort: 9093   # controller quorum
+          env:
+            # --- KRaft identity & roles ---
+            - name: KAFKA_NODE_ID
+              value: '1'
+            - name: KAFKA_PROCESS_ROLES
+              value: 'broker,controller'
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              # Single voter: nodeId@host:controllerPort
+              value: '1@kafka-0.kafka-srv:9093'
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: 'CONTROLLER'
+
+            # --- Listeners ---
+            # Bind both listeners on all interfaces inside the pod:
+            - name: KAFKA_LISTENERS
+              value: 'PLAINTEXT://:9092,CONTROLLER://:9093'
+            # Advertise the PLAINTEXT listener as the stable pod DNS so clients
+            # that bootstrap here are handed a reachable address:
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: 'PLAINTEXT://kafka-0.kafka-srv:9092'
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: 'PLAINTEXT'
+
+            # --- Single-node dev defaults (replication factor 1) ---
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: '1'
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: '1'
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: '1'
+            - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+              value: '0'
+            # Auto-create topics on first publish/subscribe. Convenient for dev;
+            # in prod you would pre-create topics with explicit partition counts.
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: 'true'
+            # Where the log + KRaft metadata live (mounted PVC below):
+            - name: KAFKA_LOG_DIRS
+              value: '/var/lib/kafka/data'
+            # A fixed cluster id so the formatted storage is stable across
+            # restarts (the apache/kafka image formats storage on first boot).
+            - name: CLUSTER_ID
+              value: 'ticketing-kraft-cluster-1'
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 1Gi
+---
+# Headless Service: `clusterIP: None` makes DNS resolve to the pod(s) directly
+# (kafka-0.kafka-srv), which is what the StatefulSet's stable identity needs.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-srv
+spec:
+  clusterIP: None
+  selector:
+    app: kafka
+  ports:
+    - name: client
+      port: 9092
+      targetPort: 9092
+    - name: controller
+      port: 9093
+      targetPort: 9093

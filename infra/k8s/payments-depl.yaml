@@ -14,16 +14,21 @@ spec:
     spec:
       containers:
         - name: payments
-          image: rallycoding/payments
+          image: 456738/payments
+          ports:
+            - containerPort: 3000
           env:
-            - name: NATS_CLIENT_ID
+            - name: KAFKA_CLIENT_ID
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: NATS_URL
-              value: 'http://nats-srv:4222'
-            - name: NATS_CLUSTER_ID
-              value: ticketing
+            - name: KAFKA_BROKERS
+              value: 'kafka-0.kafka-srv:9092'
+            - name: KAFKA_GROUP_ID
+              value: 'payments'
+            - name: SCHEMA_REGISTRY_URL
+              value: 'http://schema-registry-srv:8081'
+            # MONGO_URI is replaced by DATABASE_URL (Postgres) in Phase 4.
             - name: MONGO_URI
               value: 'mongodb://payments-mongo-srv:27017/payments'
             - name: JWT_KEY

@@ -14,16 +14,26 @@ spec:
     spec:
       containers:
         - name: tickets
-          image: rallycoding/tickets
+          image: 456738/tickets
+          ports:
+            - containerPort: 3000
           env:
-            - name: NATS_CLIENT_ID
+            # Stable per-pod client id (used as Kafka clientId). Derived from the
+            # pod name so each replica is distinguishable, as NATS_CLIENT_ID was.
+            - name: KAFKA_CLIENT_ID
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: NATS_URL
-              value: 'http://nats-srv:4222'
-            - name: NATS_CLUSTER_ID
-              value: ticketing
+            # Broker bootstrap address (the KRaft broker's PLAINTEXT listener).
+            - name: KAFKA_BROKERS
+              value: 'kafka-0.kafka-srv:9092'
+            # Consumer group id for this service's listeners (competing consumers).
+            - name: KAFKA_GROUP_ID
+              value: 'tickets'
+            # Schema Registry endpoint for Avro serdes.
+            - name: SCHEMA_REGISTRY_URL
+              value: 'http://schema-registry-srv:8081'
+            # MONGO_URI is replaced by DATABASE_URL (Postgres) in Phase 4.
             - name: MONGO_URI
               value: 'mongodb://tickets-mongo-srv:27017/tickets'
             - name: JWT_KEY

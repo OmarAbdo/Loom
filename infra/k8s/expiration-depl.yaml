@@ -14,15 +14,19 @@ spec:
     spec:
       containers:
         - name: expiration
-          image: rallycoding/expiration
+          image: 456738/expiration
           env:
-            - name: NATS_CLIENT_ID
+            - name: KAFKA_CLIENT_ID
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: NATS_URL
-              value: 'http://nats-srv:4222'
-            - name: NATS_CLUSTER_ID
-              value: ticketing
+            - name: KAFKA_BROKERS
+              value: 'kafka-0.kafka-srv:9092'
+            - name: KAFKA_GROUP_ID
+              value: 'expiration'
+            - name: SCHEMA_REGISTRY_URL
+              value: 'http://schema-registry-srv:8081'
+            # Redis backs the Bull delayed-job queue (unchanged; see ADR-0001 /
+            # expiration keeps Bull+Redis — delayed delivery is orthogonal to Kafka).
             - name: REDIS_HOST
               value: expiration-redis-srv

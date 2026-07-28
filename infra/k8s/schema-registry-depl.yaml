@@ -1,0 +1,68 @@
+# =============================================================================
+# Confluent Schema Registry
+# =============================================================================
+#
+# WHAT IT IS (see docs/concepts/avro-and-schema-registry.md)
+# ----------------------------------------------------------
+# A small HTTP service that stores Avro schemas, assigns each a global schema id,
+# versions them per subject, and ENFORCES a compatibility rule when a new version
+# is registered. Producers/consumers talk to it via @confluentinc/schemaregistry.
+#
+# WHY A Deployment (not a StatefulSet)
+# ------------------------------------
+# The registry is effectively STATELESS from Kubernetes' point of view: it stores
+# all schema data IN KAFKA (in the `_schemas` topic), not on its own disk. So a
+# plain Deployment is correct — any replica can be rescheduled freely; the source
+# of truth is the Kafka topic. (Contrast with Kafka itself, which is a StatefulSet
+# precisely because it owns disk + identity.)
+#
+# COMPATIBILITY DEFAULT
+# ---------------------
+# SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL=BACKWARD sets the GLOBAL default so
+# every subject rejects backward-incompatible changes unless overridden. This is
+# the authoritative enforcement point referenced by schemas/src/register.ts.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schema-registry-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: schema-registry
+  template:
+    metadata:
+      labels:
+        app: schema-registry
+    spec:
+      containers:
+        - name: schema-registry
+          image: confluentinc/cp-schema-registry:7.7.1
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              value: 'schema-registry'
+            # Where to store schemas: the Kafka broker's PLAINTEXT listener.
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: 'PLAINTEXT://kafka-0.kafka-srv:9092'
+            # Listen on all interfaces, port 8081.
+            - name: SCHEMA_REGISTRY_LISTENERS
+              value: 'http://0.0.0.0:8081'
+            # Global compatibility default (see docs/concepts + ADR-0002).
+            - name: SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL
+              value: 'BACKWARD'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry-srv
+spec:
+  selector:
+    app: schema-registry
+  ports:
+    - name: registry
+      protocol: TCP
+      port: 8081
+      targetPort: 8081
