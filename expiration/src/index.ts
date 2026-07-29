@@ -1,31 +1,25 @@
-import { natsWrapper } from './nats-wrapper';
+import { kafkaWrapper } from '@omarabdo/ticketing-common';
 import { OrderCreatedListener } from './events/listeners/order-created-listener';
 
 const start = async () => {
-  if (!process.env.NATS_CLIENT_ID) {
-    throw new Error('NATS_CLIENT_ID must be defined');
-  }
-  if (!process.env.NATS_URL) {
-    throw new Error('NATS_URL must be defined');
-  }
-  if (!process.env.NATS_CLUSTER_ID) {
-    throw new Error('NATS_CLUSTER_ID must be defined');
-  }
+  const { KAFKA_BROKERS, KAFKA_CLIENT_ID, SCHEMA_REGISTRY_URL, REDIS_HOST } =
+    process.env;
+  if (!KAFKA_BROKERS) throw new Error('KAFKA_BROKERS must be defined');
+  if (!KAFKA_CLIENT_ID) throw new Error('KAFKA_CLIENT_ID must be defined');
+  if (!SCHEMA_REGISTRY_URL) throw new Error('SCHEMA_REGISTRY_URL must be defined');
+  if (!REDIS_HOST) throw new Error('REDIS_HOST must be defined');
 
   try {
-    await natsWrapper.connect(
-      process.env.NATS_CLUSTER_ID,
-      process.env.NATS_CLIENT_ID,
-      process.env.NATS_URL
+    await kafkaWrapper.connect(
+      KAFKA_CLIENT_ID,
+      KAFKA_BROKERS.split(','),
+      SCHEMA_REGISTRY_URL
     );
-    natsWrapper.client.on('close', () => {
-      console.log('NATS connection closed!');
-      process.exit();
-    });
-    process.on('SIGINT', () => natsWrapper.client.close());
-    process.on('SIGTERM', () => natsWrapper.client.close());
+    process.on('SIGINT', () => kafkaWrapper.disconnect());
+    process.on('SIGTERM', () => kafkaWrapper.disconnect());
 
-    new OrderCreatedListener(natsWrapper.client).listen();
+    await new OrderCreatedListener().listen();
+    console.log('expiration service running (Bull queue + Kafka)');
   } catch (err) {
     console.error(err);
   }
