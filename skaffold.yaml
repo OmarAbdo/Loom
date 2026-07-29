@@ -51,57 +51,62 @@ build:
     # daemon image store directly.
     push: false
   artifacts:
+    # Backend services share `common/` + `schemas/`, which live OUTSIDE each
+    # service dir. So their build context is the REPO ROOT (context: .) and each
+    # Dockerfile lives at <service>/Dockerfile. File sync keeps the <service>/
+    # path prefix so synced files land in the right place inside the image.
+
     # ---- auth: user accounts, signup/signin, JWT issuance ------------------
     - image: 456738/auth
-      context: auth
+      context: .
       docker:
-        dockerfile: Dockerfile
+        dockerfile: auth/Dockerfile
       sync:
         manual:
-          - src: 'src/**/*.ts'
+          - src: 'auth/src/**/*.ts'
             dest: .
 
     # ---- tickets: create/list/update tickets, source of ticket:* events ----
     - image: 456738/tickets
-      context: tickets
+      context: .
       docker:
-        dockerfile: Dockerfile
+        dockerfile: tickets/Dockerfile
       sync:
         manual:
-          - src: 'src/**/*.ts'
+          - src: 'tickets/src/**/*.ts'
             dest: .
 
     # ---- orders: order lifecycle, saga initiator (order:* events) ----------
     - image: 456738/orders
-      context: orders
+      context: .
       docker:
-        dockerfile: Dockerfile
+        dockerfile: orders/Dockerfile
       sync:
         manual:
-          - src: 'src/**/*.ts'
+          - src: 'orders/src/**/*.ts'
             dest: .
 
     # ---- expiration: Bull/Redis delayed job -> expiration:complete ---------
     - image: 456738/expiration
-      context: expiration
+      context: .
       docker:
-        dockerfile: Dockerfile
+        dockerfile: expiration/Dockerfile
       sync:
         manual:
-          - src: 'src/**/*.ts'
+          - src: 'expiration/src/**/*.ts'
             dest: .
 
     # ---- payments: Stripe charge, payment:created --------------------------
     - image: 456738/payments
-      context: payments
+      context: .
       docker:
-        dockerfile: Dockerfile
+        dockerfile: payments/Dockerfile
       sync:
         manual:
-          - src: 'src/**/*.ts'
+          - src: 'payments/src/**/*.ts'
             dest: .
 
-    # ---- client: Next.js UI (syncs .js, not .ts) ---------------------------
+    # ---- client: Next.js UI (own context; no shared deps) ------------------
     - image: 456738/client
       context: client
       docker:
