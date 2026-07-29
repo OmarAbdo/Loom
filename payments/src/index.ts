@@ -21,28 +21,28 @@ const start = async () => {
   if (!SCHEMA_REGISTRY_URL) throw new Error('SCHEMA_REGISTRY_URL must be defined');
   if (!STRIPE_KEY) throw new Error('STRIPE_KEY must be defined');
 
-  try {
-    await kafkaWrapper.connect(
-      KAFKA_CLIENT_ID,
-      KAFKA_BROKERS.split(','),
-      SCHEMA_REGISTRY_URL
-    );
-    process.on('SIGINT', () => kafkaWrapper.disconnect());
-    process.on('SIGTERM', () => kafkaWrapper.disconnect());
+  // Init must succeed or crash so k8s restarts (do not swallow init errors).
+  await kafkaWrapper.connect(
+    KAFKA_CLIENT_ID,
+    KAFKA_BROKERS.split(','),
+    SCHEMA_REGISTRY_URL
+  );
+  process.on('SIGINT', () => kafkaWrapper.disconnect());
+  process.on('SIGTERM', () => kafkaWrapper.disconnect());
 
-    const db = connectDb(DATABASE_URL);
-    await migrateToLatest(db);
-    console.log('Connected to Postgres and migrated');
+  const db = connectDb(DATABASE_URL);
+  await migrateToLatest(db);
+  console.log('Connected to Postgres and migrated');
 
-    await new OrderCreatedListener().listen();
-    await new OrderCancelledListener().listen();
-  } catch (err) {
-    console.error(err);
-  }
+  await new OrderCreatedListener().listen();
+  await new OrderCancelledListener().listen();
 
   app.listen(3000, () => {
     console.log('payments service listening on port 3000');
   });
 };
 
-start();
+start().catch((err) => {
+  console.error('Fatal startup error:', err);
+  process.exit(1);
+});

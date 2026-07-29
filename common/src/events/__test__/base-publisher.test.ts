@@ -42,9 +42,9 @@ beforeEach(() => jest.clearAllMocks());
 it('serializes the data against the subject and sends to that topic', async () => {
   await new KeyedPublisher().publish({ id: 't1', title: 'concert' });
 
-  expect(serialize).toHaveBeenCalledWith('ticket:created', { id: 't1', title: 'concert' });
+  expect(serialize).toHaveBeenCalledWith('ticket.created', { id: 't1', title: 'concert' });
   const sendArg = send.mock.calls[0][0];
-  expect(sendArg.topic).toBe('ticket:created');
+  expect(sendArg.topic).toBe('ticket.created');
   expect(sendArg.messages[0].value).toEqual(Buffer.from('avro-bytes'));
 });
 

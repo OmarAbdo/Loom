@@ -20,31 +20,29 @@ const start = async () => {
   if (!KAFKA_CLIENT_ID) throw new Error('KAFKA_CLIENT_ID must be defined');
   if (!SCHEMA_REGISTRY_URL) throw new Error('SCHEMA_REGISTRY_URL must be defined');
 
-  try {
-    // Kafka + Schema Registry (shared producer + registry live in the wrapper).
-    await kafkaWrapper.connect(
-      KAFKA_CLIENT_ID,
-      KAFKA_BROKERS.split(','),
-      SCHEMA_REGISTRY_URL
-    );
-    process.on('SIGINT', () => kafkaWrapper.disconnect());
-    process.on('SIGTERM', () => kafkaWrapper.disconnect());
+  // Init must succeed or the process should crash so k8s restarts it (standard
+  // "crash until dependencies are ready" pattern) — do not swallow init errors.
+  await kafkaWrapper.connect(
+    KAFKA_CLIENT_ID,
+    KAFKA_BROKERS.split(','),
+    SCHEMA_REGISTRY_URL
+  );
+  process.on('SIGINT', () => kafkaWrapper.disconnect());
+  process.on('SIGTERM', () => kafkaWrapper.disconnect());
 
-    // Postgres: connect + run migrations to latest.
-    const db = connectDb(DATABASE_URL);
-    await migrateToLatest(db);
-    console.log('Connected to Postgres and migrated');
+  const db = connectDb(DATABASE_URL);
+  await migrateToLatest(db);
+  console.log('Connected to Postgres and migrated');
 
-    // Start consumers.
-    await new OrderCreatedListener().listen();
-    await new OrderCancelledListener().listen();
-  } catch (err) {
-    console.error(err);
-  }
+  await new OrderCreatedListener().listen();
+  await new OrderCancelledListener().listen();
 
   app.listen(3000, () => {
     console.log('tickets service listening on port 3000');
   });
 };
 
-start();
+start().catch((err) => {
+  console.error('Fatal startup error:', err);
+  process.exit(1);
+});

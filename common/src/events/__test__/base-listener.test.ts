@@ -48,7 +48,7 @@ class TestListener extends Listener<{ subject: Subjects.TicketCreated; data: any
 
 function makePayload(offset: string) {
   return {
-    topic: 'ticket:created',
+    topic: 'ticket.created',
     partition: 2,
     message: { value: Buffer.from('x'), offset, headers: {} },
   };
@@ -75,7 +75,7 @@ it('commits offset + 1 on the right topic/partition after a successful ack', asy
 
   expect(listener.received).toEqual([{ hello: 'world' }]);
   expect(commitOffsets).toHaveBeenCalledWith([
-    { topic: 'ticket:created', partition: 2, offset: '42' },
+    { topic: 'ticket.created', partition: 2, offset: '42' },
   ]);
 });
 

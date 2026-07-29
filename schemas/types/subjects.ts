@@ -3,21 +3,24 @@
  *
  * These string values are the Kafka **topic** names. Each also has a Schema
  * Registry subject derived by the default TopicNameStrategy: `<topic>-value`
- * (e.g. topic `ticket:created` -> registry subject `ticket:created-value`).
+ * (e.g. topic `ticket.created` -> registry subject `ticket.created-value`).
  *
- * We keep the original colon-delimited names (`ticket:created`) so the wire
- * topic names are unchanged from the pre-migration system. Kafka topic names
- * permit `:`, so this is valid. (Contrast with Avro *enum symbols*, which may
- * NOT contain `:` — see OrderStatus below.)
+ * NAMING CONSTRAINT: Kafka topic names may contain only ASCII alphanumerics,
+ * `.`, `_`, and `-`. Grider's NATS channels used a colon (`ticket:created`), but
+ * Kafka REJECTS `:` in a topic name (InvalidTopicException). So we use the
+ * conventional dot-delimited form (`ticket.created`). This changed from the
+ * pre-migration wire names — acceptable because nothing is in production and it
+ * is the correct Kafka convention. (The same `:` restriction also applies to
+ * Avro enum symbols — see OrderStatus.)
  */
 export enum Subjects {
-  TicketCreated = 'ticket:created',
-  TicketUpdated = 'ticket:updated',
+  TicketCreated = 'ticket.created',
+  TicketUpdated = 'ticket.updated',
 
-  OrderCreated = 'order:created',
-  OrderCancelled = 'order:cancelled',
+  OrderCreated = 'order.created',
+  OrderCancelled = 'order.cancelled',
 
-  ExpirationComplete = 'expiration:complete',
+  ExpirationComplete = 'expiration.complete',
 
-  PaymentCreated = 'payment:created',
+  PaymentCreated = 'payment.created',
 }
