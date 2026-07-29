@@ -1,37 +1,40 @@
-import { Message } from 'node-nats-streaming';
-import { Listener, OrderCreatedEvent, Subjects } from '@rallycoding/common';
-import { queueGroupName } from './queue-group-name';
-import { Ticket } from '../../models/ticket';
+import { Listener, Message } from '@omarabdo/ticketing-common';
+import { OrderCreatedEvent, Subjects } from '@omarabdo/ticketing-schemas';
+import { groupId } from './group-id';
+import { getDb } from '../../db/connection';
+import { TicketRepository } from '../../repositories/ticket-repository';
 import { TicketUpdatedPublisher } from '../publishers/ticket-updated-publisher';
 
+/**
+ * On order:created, reserve the ticket by setting its orderId, then publish
+ * ticket:updated so downstream replicas learn of the reservation.
+ */
 export class OrderCreatedListener extends Listener<OrderCreatedEvent> {
   subject: Subjects.OrderCreated = Subjects.OrderCreated;
-  queueGroupName = queueGroupName;
+  groupId = groupId;
 
-  async onMessage(data: OrderCreatedEvent['data'], msg: Message) {
-    // Find the ticket that the order is reserving
-    const ticket = await Ticket.findById(data.ticket.id);
+  async onMessage(data: OrderCreatedEvent['data'], msg: Message): Promise<void> {
+    const tickets = new TicketRepository(getDb());
 
-    // If no ticket, throw error
+    const ticket = await tickets.findById(data.ticket.id);
     if (!ticket) {
       throw new Error('Ticket not found');
     }
 
-    // Mark the ticket as being reserved by setting its orderId property
-    ticket.set({ orderId: data.id });
-
-    // Save the ticket
-    await ticket.save();
-    await new TicketUpdatedPublisher(this.client).publish({
-      id: ticket.id,
-      price: ticket.price,
-      title: ticket.title,
-      userId: ticket.userId,
-      orderId: ticket.orderId,
-      version: ticket.version,
+    // Reserve: set orderId. Version-guarded update bumps the version.
+    const updated = await tickets.update(ticket.id, ticket.version, {
+      orderId: data.id,
     });
 
-    // ack the message
+    await new TicketUpdatedPublisher().publish({
+      id: updated.id,
+      price: updated.price,
+      title: updated.title,
+      userId: updated.userId,
+      orderId: updated.orderId ?? undefined,
+      version: updated.version,
+    });
+
     msg.ack();
   }
 }

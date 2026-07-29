@@ -1,9 +1,9 @@
 import express, { Request, Response } from 'express';
 import { body } from 'express-validator';
-import { requireAuth, validateRequest } from '@rallycoding/common';
-import { Ticket } from '../models/ticket';
+import { requireAuth, validateRequest } from '@omarabdo/ticketing-common';
+import { getDb } from '../db/connection';
+import { TicketRepository } from '../repositories/ticket-repository';
 import { TicketCreatedPublisher } from '../events/publishers/ticket-created-publisher';
-import { natsWrapper } from '../nats-wrapper';
 
 const router = express.Router();
 
@@ -19,13 +19,16 @@ router.post(
   validateRequest,
   async (req: Request, res: Response) => {
     const { title, price } = req.body;
-    const ticket = Ticket.build({
+    const tickets = new TicketRepository(getDb());
+
+    const ticket = await tickets.create({
       title,
       price,
       userId: req.currentUser!.id,
     });
-    await ticket.save();
-    new TicketCreatedPublisher(natsWrapper.client).publish({
+
+    // Publish AFTER the row is committed, keyed by ticket id for ordering.
+    await new TicketCreatedPublisher().publish({
       id: ticket.id,
       title: ticket.title,
       price: ticket.price,

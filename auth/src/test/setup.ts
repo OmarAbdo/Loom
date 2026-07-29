@@ -1,60 +1,56 @@
-import { MongoMemoryServer } from 'mongodb-memory-server'; // MongoDb in memory. nice for testing.
-import mongoose from 'mongoose';
-import request from 'supertest';
-import { app } from '../app';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
+import { connectDb, getDb } from '../db/connection';
+import { migrateToLatest } from '../db/migrator';
 
-
-let mongo: MongoMemoryServer;
+/**
+ * Integration-test setup for the auth HTTP routes.
+ *
+ * Boots a REAL Postgres (Testcontainers), wires the shared connectDb singleton
+ * to it, and migrates. Auth publishes no events, so there is no Kafka to mock.
+ * `global.signin` here performs a real signup+signin against the app to obtain a
+ * cookie (auth is the service that issues cookies, so it can't fake one).
+ */
 
 declare global {
-  var signin: () => Promise<string[] | undefined>;
+  // eslint-disable-next-line no-var
+  var signin: () => Promise<string[]>;
 }
 
- 
-// Spinning up an in-memory mongod on Windows regularly exceeds jest's
-// default 5s hook timeout, so give the setup/teardown hooks more room.
+let container: StartedPostgreSqlContainer;
+
 jest.setTimeout(60000);
 
 beforeAll(async () => {
-  process.env.JWT_KEY = 'asdf';
+  process.env.JWT_KEY = 'test-jwt-key';
+  process.env.NODE_ENV = 'test';
 
-  mongo = await MongoMemoryServer.create();
-  const mongoUri = mongo.getUri();
-
-  await mongoose.connect(mongoUri);
+  container = await new PostgreSqlContainer('postgres:16').start();
+  const db = connectDb(container.getConnectionUri());
+  await migrateToLatest(db);
 });
 
 beforeEach(async () => {
-  if (mongoose.connection.db) {
-    const collections = await mongoose.connection.db.collections();
-
-    for (let collection of collections) {
-      await collection.deleteMany({});
-    }
-  }
+  await getDb().deleteFrom('users').execute();
 });
 
 afterAll(async () => {
-  if (mongo) {
-    await mongo.stop();
-  }
-  await mongoose.connection.close();
+  await getDb().destroy();
+  await container.stop();
 });
 
-
-global.signin = async () => { 
-  const email = 'test@test.com'
-  const password = 'password'
+// Real signup -> returns the Set-Cookie header (auth issues the cookie itself).
+global.signin = async () => {
+  const request = require('supertest');
+  const { app } = require('../app');
+  const email = `test-${Math.random().toString(36).slice(2)}@test.com`;
 
   const response = await request(app)
     .post('/api/users/signup')
-    .send({
-      email,
-      password
-    })
+    .send({ email, password: 'password' })
     .expect(201);
 
-  const cookie = response.get('Set-Cookie');
-
-  return cookie;
+  return response.get('Set-Cookie');
 };

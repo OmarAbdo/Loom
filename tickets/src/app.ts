@@ -1,8 +1,11 @@
 import express from 'express';
-import 'express-async-errors';
 import { json } from 'body-parser';
 import cookieSession from 'cookie-session';
-import { errorHandler, NotFoundError, currentUser } from '@rallycoding/common';
+import {
+  errorHandler,
+  NotFoundError,
+  currentUser,
+} from '@omarabdo/ticketing-common';
 import { createTicketRouter } from './routes/new';
 import { showTicketRouter } from './routes/show';
 import { indexTicketRouter } from './routes/index';
@@ -24,7 +27,10 @@ app.use(showTicketRouter);
 app.use(indexTicketRouter);
 app.use(updateTicketRouter);
 
-app.all('*', async (req, res) => {
+// Express 5 catch-all: bare '*' is invalid under path-to-regexp v8; use a named
+// wildcard. Express 5 also forwards async route errors to errorHandler natively,
+// so the express-async-errors shim is gone.
+app.all('*splat', async (req, res) => {
   throw new NotFoundError();
 });
 

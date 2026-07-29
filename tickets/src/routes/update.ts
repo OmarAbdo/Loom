@@ -6,10 +6,10 @@ import {
   requireAuth,
   NotAuthorizedError,
   BadRequestError,
-} from '@rallycoding/common';
-import { Ticket } from '../models/ticket';
+} from '@omarabdo/ticketing-common';
+import { getDb } from '../db/connection';
+import { TicketRepository } from '../repositories/ticket-repository';
 import { TicketUpdatedPublisher } from '../events/publishers/ticket-updated-publisher';
-import { natsWrapper } from '../nats-wrapper';
 
 const router = express.Router();
 
@@ -24,34 +24,35 @@ router.put(
   ],
   validateRequest,
   async (req: Request, res: Response) => {
-    const ticket = await Ticket.findById(req.params.id);
+    const tickets = new TicketRepository(getDb());
+    const ticket = await tickets.findById(req.params.id as string);
 
     if (!ticket) {
       throw new NotFoundError();
     }
-
+    // A reserved ticket (orderId set) cannot be edited.
     if (ticket.orderId) {
       throw new BadRequestError('Cannot edit a reserved ticket');
     }
-
     if (ticket.userId !== req.currentUser!.id) {
       throw new NotAuthorizedError();
     }
 
-    ticket.set({
+    // Version-guarded update (OCC). Bumps version to ticket.version + 1.
+    const updated = await tickets.update(ticket.id, ticket.version, {
       title: req.body.title,
       price: req.body.price,
     });
-    await ticket.save();
-    new TicketUpdatedPublisher(natsWrapper.client).publish({
-      id: ticket.id,
-      title: ticket.title,
-      price: ticket.price,
-      userId: ticket.userId,
-      version: ticket.version,
+
+    await new TicketUpdatedPublisher().publish({
+      id: updated.id,
+      title: updated.title,
+      price: updated.price,
+      userId: updated.userId,
+      version: updated.version,
     });
 
-    res.send(ticket);
+    res.send(updated);
   }
 );
 
