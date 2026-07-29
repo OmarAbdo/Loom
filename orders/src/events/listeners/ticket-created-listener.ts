@@ -1,22 +1,22 @@
-import { Message } from 'node-nats-streaming';
-import { Subjects, Listener, TicketCreatedEvent } from '@rallycoding/common';
-import { Ticket } from '../../models/ticket';
-import { queueGroupName } from './queue-group-name';
+import { Listener, Message } from '@omarabdo/ticketing-common';
+import { Subjects, TicketCreatedEvent } from '@omarabdo/ticketing-schemas';
+import { groupId } from './group-id';
+import { getDb } from '../../db/connection';
+import { TicketRepository } from '../../repositories/ticket-repository';
 
+/** On ticket:created, insert the ticket into the local replica. */
 export class TicketCreatedListener extends Listener<TicketCreatedEvent> {
   subject: Subjects.TicketCreated = Subjects.TicketCreated;
-  queueGroupName = queueGroupName;
+  groupId = groupId;
 
-  async onMessage(data: TicketCreatedEvent['data'], msg: Message) {
-    const { id, title, price } = data;
-
-    const ticket = Ticket.build({
-      id,
-      title,
-      price,
+  async onMessage(data: TicketCreatedEvent['data'], msg: Message): Promise<void> {
+    const tickets = new TicketRepository(getDb());
+    await tickets.create({
+      id: data.id,
+      title: data.title,
+      price: data.price,
+      version: data.version,
     });
-    await ticket.save();
-
     msg.ack();
   }
 }

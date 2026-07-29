@@ -2,11 +2,11 @@ import express, { Request, Response } from 'express';
 import {
   requireAuth,
   NotFoundError,
-  NotAuthorizedError
-} from '@rallycoding/common';
-import { Order, OrderStatus } from '../models/order';
+  NotAuthorizedError,
+} from '@omarabdo/ticketing-common';
+import { getDb } from '../db/connection';
+import { OrderRepository } from '../repositories/order-repository';
 import { OrderCancelledPublisher } from '../events/publishers/order-cancelled-publisher';
-import { natsWrapper } from '../nats-wrapper';
 
 const router = express.Router();
 
@@ -14,9 +14,8 @@ router.delete(
   '/api/orders/:orderId',
   requireAuth,
   async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-
-    const order = await Order.findById(orderId).populate('ticket');
+    const orders = new OrderRepository(getDb());
+    const order = await orders.findById(req.params.orderId as string);
 
     if (!order) {
       throw new NotFoundError();
@@ -24,19 +23,17 @@ router.delete(
     if (order.userId !== req.currentUser!.id) {
       throw new NotAuthorizedError();
     }
-    order.status = OrderStatus.Cancelled;
-    await order.save();
 
-    // publishing an event saying this was cancelled!
-    new OrderCancelledPublisher(natsWrapper.client).publish({
-      id: order.id,
-      version: order.version,
-      ticket: {
-        id: order.ticket.id
-      }
+    // Cancel (user-initiated). Version-guarded update bumps the version.
+    const cancelled = await orders.updateStatus(order.id, order.version, 'cancelled');
+
+    await new OrderCancelledPublisher().publish({
+      id: cancelled.id,
+      version: cancelled.version,
+      ticket: { id: cancelled.ticketId },
     });
 
-    res.status(204).send(order);
+    res.status(204).send(cancelled);
   }
 );
 

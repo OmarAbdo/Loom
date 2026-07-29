@@ -3,8 +3,10 @@ import {
   requireAuth,
   NotFoundError,
   NotAuthorizedError,
-} from '@rallycoding/common';
-import { Order } from '../models/order';
+} from '@omarabdo/ticketing-common';
+import { getDb } from '../db/connection';
+import { OrderRepository } from '../repositories/order-repository';
+import { TicketRepository } from '../repositories/ticket-repository';
 
 const router = express.Router();
 
@@ -12,7 +14,8 @@ router.get(
   '/api/orders/:orderId',
   requireAuth,
   async (req: Request, res: Response) => {
-    const order = await Order.findById(req.params.orderId).populate('ticket');
+    const orders = new OrderRepository(getDb());
+    const order = await orders.findById(req.params.orderId as string);
 
     if (!order) {
       throw new NotFoundError();
@@ -21,7 +24,8 @@ router.get(
       throw new NotAuthorizedError();
     }
 
-    res.send(order);
+    const ticket = await new TicketRepository(getDb()).findById(order.ticketId);
+    res.send({ ...order, ticket });
   }
 );
 
