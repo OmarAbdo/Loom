@@ -16,3 +16,4 @@ logs/
 # Env / secrets — never commit
 .env
 .env.*
+*.tsbuildinfo

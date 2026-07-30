@@ -106,12 +106,11 @@ build:
           - src: 'payments/src/**/*.ts'
             dest: .
 
-    # ---- client: Next.js UI (own context; no shared deps) ------------------
+    # ---- client: Vite/React SPA served by nginx (own context; no shared deps).
+    # No file sync: the SPA is a static build, so source changes require an image
+    # rebuild (Skaffold does this automatically on change). For fast UI iteration,
+    # run `npm run dev` in client/ directly against a port-forwarded ingress.
     - image: 456738/client
       context: client
       docker:
         dockerfile: Dockerfile
-      sync:
-        manual:
-          - src: '**/*.js'
-            dest: .

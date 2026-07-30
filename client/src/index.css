@@ -1,0 +1,104 @@
+:root {
+  --bg: #0f1115;
+  --panel: #1a1d24;
+  --border: #2a2f3a;
+  --text: #e6e8ec;
+  --muted: #9aa0ab;
+  --accent: #6d5efc;
+  --accent-hover: #5b4de0;
+  --danger: #ef4444;
+  --ok: #22c55e;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.nav .brand { font-weight: 700; font-size: 1.25rem; color: var(--text); }
+.nav .links { display: flex; gap: 16px; align-items: center; }
+
+.container { max-width: 900px; margin: 32px auto; padding: 0 24px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.ticket-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: var(--panel);
+}
+
+label { display: block; margin: 12px 0 6px; color: var(--muted); font-size: 0.9rem; }
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #10131a;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.btn:hover { background: var(--accent-hover); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-danger { background: var(--danger); }
+
+.errors {
+  border: 1px solid var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fecaca;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+}
+.errors ul { margin: 6px 0 0; padding-left: 18px; }
+
+.badge { padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.badge-created { background: rgba(109,94,252,0.2); color: #b7aefc; }
+.badge-complete { background: rgba(34,197,94,0.2); color: #86efac; }
+.badge-cancelled { background: rgba(239,68,68,0.2); color: #fecaca; }
+.badge-awaiting { background: rgba(234,179,8,0.2); color: #fde68a; }
+
+.muted { color: var(--muted); }
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.25rem; }
+.price { font-variant-numeric: tabular-nums; }
