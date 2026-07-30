@@ -69,11 +69,19 @@ The service deployments set `KAFKA_CLIENT_ID` from `metadata.name` via a
 replica a distinct, stable client id — the same trick Grider used for
 `NATS_CLIENT_ID`.
 
+## Resource requests & limits
+
+Every container sets `resources.requests` (what the scheduler reserves) and
+`resources.limits` (the hard ceiling). See
+[resource-footprint.md](../architecture/resource-footprint.md) for the numbers and
+the reasoning. In short: the whole system reserves **~2 Gi** and is capped at
+**~3.8 Gi** — the Node services are tiny (128/256 Mi), and the JVM services
+(Kafka, Schema Registry) have explicit heap caps so they don't size themselves
+from host RAM. This is both good hygiene and the answer to "why did the cluster
+seem to want 15 GB?" (it was Docker Desktop's VM ceiling + uncapped JVMs).
+
 ## Known dev-vs-prod gaps (deliberate)
 
-- **No resource requests/limits** on containers (a linter will warn). Fine for a
-  local single-tenant cluster; production must set these to avoid noisy-neighbor
-  and enable scheduling/autoscaling.
 - **Single replica** everywhere, **PLAINTEXT** Kafka, RF=1. Dev simplifications;
   production needs HA (RF>=3, multiple brokers), TLS/SASL, and probes.
 - **No liveness/readiness probes** yet. Adding them (esp. for Kafka + registry

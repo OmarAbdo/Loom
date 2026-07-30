@@ -15,6 +15,13 @@ spec:
       containers:
         - name: client
           image: 456738/client
+          resources:
+            requests:
+              memory: '16Mi'
+              cpu: '10m'
+            limits:
+              memory: '64Mi'
+              cpu: '250m'
           ports:
             - containerPort: 80
 ---

@@ -39,9 +39,19 @@ spec:
       containers:
         - name: schema-registry
           image: confluentinc/cp-schema-registry:7.7.1
+          # JVM heap cap (the registry is also Java). 256m is ample for dev.
+          resources:
+            requests:
+              memory: '320Mi'
+              cpu: '100m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
           ports:
             - containerPort: 8081
           env:
+            - name: SCHEMA_REGISTRY_HEAP_OPTS
+              value: '-Xms128m -Xmx256m'
             - name: SCHEMA_REGISTRY_HOST_NAME
               value: 'schema-registry'
             # Where to store schemas: the Kafka broker's PLAINTEXT listener.

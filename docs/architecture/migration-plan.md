@@ -26,14 +26,15 @@ existing JWT auth.
 | # | Phase | Deliverable | Status |
 | - | ----- | ----------- | ------ |
 | 0 | **Scaffold** | All 6 services in the repo on the modern baseline layout; `nats-test` dropped; `skaffold.yaml` covers all services; `docs/` structure + foundational docs seeded. | ✅ done |
-| 1 | **Schema Registry & Avro** | Registry running in-cluster; `.avsc` for all 6 events; codegen → TS types; compatibility mode set. | ⏳ next |
-| 2 | **Infra-only `common`** | `@omarabdo/ticketing-common` trimmed to errors + middleware + Kafka base Publisher/Consumer + `kafka-wrapper`; developed via `npm link` until published. | ☐ |
-| 3 | **Kafka (KRaft) in cluster** | `kafka-depl.yaml` StatefulSet (KRaft, no ZooKeeper); `nats-depl.yaml` deleted; service env → `KAFKA_*` + `SCHEMA_REGISTRY_URL`. | ☐ |
-| 4 | **Postgres/Kysely per service** | Per-service Postgres StatefulSets replacing Mongo; Mongoose models → tables + typed Kysely repos preserving the OCC `version` contract; migrations; test setup on ephemeral Postgres. | ☐ |
-| 5 | **Wire services** | Each service: imports → new common, delete `nats-wrapper`, Kafka+Avro publish/consume, Postgres wiring, Express 4→5. `expiration` keeps Bull+Redis (only its event edges move). | ☐ |
-| 6 | **Saga documentation + smoke** | Purchase saga documented in Newman's terms; end-to-end flow verified via `skaffold dev`. | ☐ |
-| 7 | **Testing pyramid** | Unit + integration + acceptance/e2e tests across services. | ☐ |
-| 8 | **React client rebuild** | Next.js UI updated to fully drive the app (browse tickets, create, order, pay). | ☐ |
+| 1 | **Schema Registry & Avro** | Registry running in-cluster; `.avsc` for all 6 events; hand-authored TS types + parity guard; BACKWARD compatibility. | ✅ done |
+| 2 | **Infra-only `common`** | `@omarabdo/ticketing-common` = errors + middleware + Kafka base Publisher/Consumer + `kafka-wrapper`; developed via `file:` deps. | ✅ done |
+| 3 | **Kafka (KRaft) in cluster** | `kafka-depl.yaml` StatefulSet (KRaft, no ZooKeeper); `nats-depl.yaml` deleted; service env → `KAFKA_*` + `SCHEMA_REGISTRY_URL`. Live-verified. | ✅ done |
+| 4 | **Postgres/Kysely per service** | Per-service Postgres StatefulSets replacing Mongo; Mongoose models → typed Kysely repos preserving the OCC `version` contract; migrations; Testcontainers tests. | ✅ done |
+| 5 | **Wire services** | Each service: new common, delete `nats-wrapper`, Kafka+Avro publish/consume, Postgres wiring, Express 4→5. Live end-to-end saga verified in-cluster. `expiration` keeps Bull+Redis. | ✅ done |
+| 6 | **Saga documentation + smoke** | Purchase saga documented in Newman's terms; end-to-end fan-out verified live over Kafka. | ✅ done |
+| 7 | **Testing pyramid** | Unit + integration + listener/consumer tests; testing-strategy doc; live e2e smoke. 78 backend tests. | ✅ done |
+| 8 | **React client rebuild** | Vite+React+TS SPA driving browse/sell/order/pay with real Stripe.js. | ✅ done |
+| 9 | **Optimization pass** | Multi-stage compiled images (~125 MB), resource requests/limits everywhere, JVM heap caps. Cluster reserves ~2 Gi (was uncapped). | ✅ done |
 
 ## Sequencing rationale
 

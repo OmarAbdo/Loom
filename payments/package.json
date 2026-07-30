@@ -6,7 +6,9 @@
   "scripts": {
     "start": "ts-node-dev --poll src/index.ts",
     "test": "jest --watchAll --no-cache",
-    "test:db": "jest -c jest.db.config.js"
+    "test:db": "jest -c jest.db.config.js",
+    "build": "tsc",
+    "start:prod": "node dist/index.js"
   },
   "jest": {
     "preset": "ts-jest",

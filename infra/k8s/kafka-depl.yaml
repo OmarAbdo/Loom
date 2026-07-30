@@ -49,10 +49,23 @@ spec:
       containers:
         - name: kafka
           image: apache/kafka:3.9.0
+          # Cap the JVM heap — Kafka otherwise sizes it from host RAM and can hold
+          # 1GB+. 512m is plenty for a single-node dev broker and is the biggest
+          # single RAM saving in the cluster. The memory LIMIT is set a bit above
+          # the heap to leave room for JVM off-heap + page cache.
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '200m'
+            limits:
+              memory: '900Mi'
+              cpu: '1000m'
           ports:
             - containerPort: 9092   # client / inter-pod
             - containerPort: 9093   # controller quorum
           env:
+            - name: KAFKA_HEAP_OPTS
+              value: '-Xms256m -Xmx512m'
             # --- KRaft identity & roles ---
             - name: KAFKA_NODE_ID
               value: '1'
