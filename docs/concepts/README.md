@@ -11,6 +11,7 @@ Deep dives on the technologies and patterns in this system. Each is written to
 | [Kubernetes primitives used here (Deployment vs StatefulSet, Service, Ingress, Secret)](kubernetes-primitives.md) | ✅ written | Phase 3 |
 | [Postgres & Kysely (the data layer, repos, migrations, Testcontainers)](postgres-and-kysely.md) | ✅ written | Phase 4 |
 | [Choreographed sagas & compensating actions](../architecture/saga.md) | ✅ written | Phase 6 |
+| [Testing strategy (the pyramid + contract-test rationale)](testing-strategy.md) | ✅ written | Phase 7 |
 
 Concept docs are written **when the corresponding code is built**, so they describe
 the real implementation rather than a plan.
