@@ -110,7 +110,18 @@ build:
     # No file sync: the SPA is a static build, so source changes require an image
     # rebuild (Skaffold does this automatically on change). For fast UI iteration,
     # run `npm run dev` in client/ directly against a port-forwarded ingress.
+    # The Stripe PUBLISHABLE key must be passed at BUILD time: Vite inlines
+    # VITE_* vars into the bundle, so it cannot be injected later as a pod env
+    # var like the backend secrets are. Without this, the image falls back to
+    # `pk_test_placeholder` and Stripe.js cannot tokenize a card — the payment
+    # form fails in the browser with no server-side error.
+    #
+    # Set it in your shell before `skaffold dev`:
+    #   export VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...   (bash)
+    #   $env:VITE_STRIPE_PUBLISHABLE_KEY = "pk_test_..." (PowerShell)
     - image: 456738/client
       context: client
       docker:
         dockerfile: Dockerfile
+        buildArgs:
+          VITE_STRIPE_PUBLISHABLE_KEY: '{{.VITE_STRIPE_PUBLISHABLE_KEY}}'

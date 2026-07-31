@@ -47,6 +47,57 @@ kubectl create secret generic stripe-secret --from-literal=STRIPE_KEY=<your-stri
 
 > These are created imperatively so no credential ever lands in a manifest or git.
 
+### 4. Stripe PUBLISHABLE key (build-time, not a secret)
+
+The `stripe-secret` above is the **secret** key, used server-side by `payments`.
+The browser additionally needs the **publishable** key (`pk_test_...`) to tokenize
+a card. Vite inlines `VITE_*` variables into the bundle at **build time**, so this
+one cannot be injected as a pod env var — it must be set before the image builds:
+
+```bash
+export VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...      # bash
+$env:VITE_STRIPE_PUBLISHABLE_KEY = "pk_test_..."    # PowerShell
+```
+
+`skaffold.yaml` forwards it as a Docker `buildArg`. If it is unset, the image
+falls back to `pk_test_placeholder` and the payment form fails **in the browser
+only** — the server logs stay clean, which makes this easy to miss.
+
+### 5. TLS certificate for `ticketing.dev`
+
+Without a cert secret, ingress-nginx serves its built-in *"Kubernetes Ingress
+Controller Fake Certificate"*, whose CN does not match `ticketing.dev`. Chrome
+then shows a full interstitial that `thisisunsafe` only bypasses temporarily.
+
+Generate a dev CA + a cert with the right CN/SAN, and load it as the secret the
+Ingress references:
+
+```bash
+# server cert must carry CN=ticketing.dev AND a matching subjectAltName
+openssl genrsa -out ca.key 2048
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 -out ca.crt \
+  -subj "/CN=Ticketing Local Dev CA/O=Ticketing Dev"
+
+openssl genrsa -out tls.key 2048
+openssl req -new -key tls.key -out srv.csr -subj "/CN=ticketing.dev/O=Ticketing Dev"
+openssl x509 -req -in srv.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+  -out tls.crt -days 825 -sha256 \
+  -extfile <(printf "subjectAltName=DNS:ticketing.dev,DNS:*.ticketing.dev\nextendedKeyUsage=serverAuth")
+
+kubectl create secret tls ticketing-tls --cert=tls.crt --key=tls.key
+```
+
+To remove the browser warning **entirely**, trust the CA (`ca.crt`) once in the OS
+store — on Windows, as Administrator:
+
+```powershell
+Import-Certificate -FilePath ca.crt -CertStoreLocation Cert:\LocalMachine\Root
+```
+
+Then fully restart Chrome. Trusting the CA (not the leaf) means you never repeat
+this when the server cert is regenerated. Skipping this step is fine — the site
+works, you just keep clicking through the warning.
+
 ## Bringing up the infrastructure (Phase 3)
 
 Kafka and the Schema Registry can be applied directly:

@@ -6,6 +6,19 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: nginx
+  # TLS for the local dev host. Without this block ingress-nginx falls back to
+  # its built-in "Kubernetes Ingress Controller Fake Certificate", whose CN does
+  # not match ticketing.dev — which is what makes Chrome show a hard interstitial
+  # rather than a simple self-signed warning.
+  #
+  # The `ticketing-tls` secret holds a cert issued by a local dev CA with
+  # CN=ticketing.dev and a matching SAN. Create it with the script documented in
+  # docs/architecture/local-setup.md ("TLS certificate"). Trusting that CA in the
+  # OS store is what removes the browser warning entirely.
+  tls:
+    - hosts:
+        - ticketing.dev
+      secretName: ticketing-tls
   rules:
     - host: ticketing.dev
       http:
