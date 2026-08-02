@@ -17,3 +17,6 @@ logs/
 .env
 .env.*
 *.tsbuildinfo
+
+# Course checkpoint zips (Grider paid course source — never commit/publish)
+*.zip
