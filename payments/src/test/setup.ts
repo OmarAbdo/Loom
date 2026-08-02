@@ -47,6 +47,9 @@ jest.setTimeout(60000);
 
 beforeAll(async () => {
   process.env.JWT_KEY = 'test-jwt-key';
+  // Non-Stripe-shaped placeholder: the stripe module is mocked in these tests,
+  // so the value only needs to be defined. (Avoids GitHub secret-scanning false
+  // positives on the sk_test_ prefix.)
   process.env.STRIPE_KEY = 'dummy-stripe-key';
   process.env.NODE_ENV = 'test';
   container = await new PostgreSqlContainer('postgres:16').start();
