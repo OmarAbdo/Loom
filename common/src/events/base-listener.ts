@@ -76,6 +76,7 @@ export abstract class Listener<T extends Event> {
    * freshly-added consumer group replays history (matches the durable behavior
    * services assumed under NATS durable subscriptions).
    */
+  // [Question] Do we always replay from the beginning? What if we want to only consume new messages? say in the case of a temporary service crash and we want to resume from where we left off? 
   async listen(): Promise<void> {
     this.consumer = kafkaWrapper.kafka.consumer({
       kafkaJS: {
@@ -89,6 +90,43 @@ export abstract class Listener<T extends Event> {
     await this.consumer.connect();
     await this.consumer.subscribe({ topics: [this.subject] });
 
+    /**
+     * [Learning: single-core concurrency] `this.consumer.run()` registers an
+     * async message loop. To understand why "concurrency on one core" isn't a
+     * contradiction, three ideas have to click:
+     *
+     * 1. NodeJs is single-threaded for JS: one main thread runs one event loop.
+     *    It never runs two pieces of my JS at once. Go uses goroutines scheduled
+     *    across OS threads (true parallelism on multiple cores); Node does not.
+     *
+     * 2. "Async" does not mean "running on another thread." When run() waits for
+     *    the Kafka broker, NO thread is blocked and NO thread is spinning. The
+     *    socket is registered with the kernel's event mechanism (epoll on Linux)
+     *    and the network card + kernel do the waiting passively — a hardware
+     *    interrupt fires when bytes arrive. Waiting costs zero CPU.
+     *    (Correction to an earlier guess: network I/O does NOT use libuv's
+     *    thread pool. The pool is only for things with no async syscall — file
+     *    I/O, DNS getaddrinfo, crypto/zlib. Sockets have async syscalls, so no
+     *    pool thread is involved.)
+     *
+     * 3. The "switch back to sync" I was trying to picture isn't a switch at all.
+     *    The event loop is: run all ready JS callbacks to completion → call
+     *    epoll_wait (the ONE place the thread blocks) → for each ready socket,
+     *    queue its callback → repeat. When Kafka's data arrives, epoll_wait
+     *    returns, my eachMessage callback gets queued, and it runs on the SAME
+     *    main thread on the next loop turn. No thread handoff, no context switch.
+     *
+     * So on a single core there's no illusion to resolve: only one thread ever
+     * runs my code. Concurrency comes from the loop interleaving many callbacks,
+     * while all the "waiting" lives in the kernel, not in blocked threads.
+     *
+     * SINGLE-THREADED (Node, Python) vs MULTI-THREADED (Go, Java): the former
+     * interleave tasks on one thread via an event loop (concurrency, no
+     * parallelism of user code); the latter can run tasks on multiple threads
+     * across cores (real parallelism). On ONE core, both reduce to the OS
+     * time-slicing — no physical difference. Multi-processing = running another
+     * instance of the service in its own memory space (e.g. a second replica).
+     */
     this.consumer.run({
       eachMessage: async (payload: KafkaJS.EachMessagePayload) => {
         const { topic, partition, message } = payload;
@@ -117,7 +155,28 @@ export abstract class Listener<T extends Event> {
         // If onMessage throws, we do NOT commit → Kafka redelivers.
         await this.onMessage(data, msg);
 
-        // Commit only when the listener explicitly acked a successful handle.
+        /**
+         * Commit the offset ONLY when the listener explicitly acked.
+         *
+         * WHY AN `ack()` AT ALL — KAFKA-IDIOMATIC OR A NATS HOLDOVER?
+         * ---------------------------------------------------------
+         * It's a deliberate design choice, not Kafka idiom. Kafka has no
+         * per-message "ack"; it tracks progress by committing offsets. We wrap
+         * that in an explicit `ack()` so listeners keep the familiar interface
+         * they had under NATS, and — more importantly — so a message counts as
+         * handled only after the listener's own logic says so. That's what gives
+         * us at-least-once delivery: nothing is committed until handling
+         * succeeds, and redelivery on failure is safe because handlers are
+         * idempotent (version-guarded writes).
+         *
+         * DOES THE BASE CLASS AUTO-ACK ON DESERIALIZE?
+         * --------------------------------------------
+         * No. Deserialization does not ack. The base class only *exposes*
+         * `msg.ack()` via the Message interface; it never calls it. The listener
+         * decides when — typically after its processing and validation complete
+         * and it's confident the message was handled correctly. Control over the
+         * commit point stays entirely with the listener.
+         */
         if (acked) {
           await this.commit(topic, partition, message.offset);
         }

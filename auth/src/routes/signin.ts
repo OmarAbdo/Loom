@@ -12,6 +12,7 @@ router.post(
   '/api/users/signin',
   [
     body('email').isEmail().withMessage('Email must be valid'),
+    // [TODO] this will trim even intended spaces in the password.
     body('password').trim().notEmpty().withMessage('You must supply a password'),
   ],
   validateRequest,
