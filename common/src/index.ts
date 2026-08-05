@@ -27,3 +27,10 @@ export * from './middlewares/validate-request';
 export * from './events/kafka-wrapper';
 export * from './events/base-publisher';
 export * from './events/base-listener';
+
+// --- HTTP contract tooling (Zod + OpenAPI) --------------------------------
+// Infra, not domain: the MECHANISM for declaring and serving request/response
+// contracts. The schemas themselves stay in each service (ADR-0004) — this
+// package never learns what a ticket or an order looks like.
+export * from './openapi/registry';
+export * from './openapi/serve-docs';
