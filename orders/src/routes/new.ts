@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-import { body } from 'express-validator';
 import {
   requireAuth,
   validateRequest,
@@ -11,6 +10,7 @@ import { getDb } from '../db/connection';
 import { TicketRepository } from '../repositories/ticket-repository';
 import { OrderRepository } from '../repositories/order-repository';
 import { OrderCreatedPublisher } from '../events/publishers/order-created-publisher';
+import { CreateOrderBody } from '../schemas';
 
 const router = express.Router();
 
@@ -19,8 +19,9 @@ const EXPIRATION_WINDOW_SECONDS = 15 * 60;
 router.post(
   '/api/orders',
   requireAuth,
-  [body('ticketId').not().isEmpty().withMessage('TicketId must be provided')],
-  validateRequest,
+  // CreateOrderBody now also enforces uuid shape, so a malformed ticketId fails
+  // here rather than as an invalid uuid literal inside the replica lookup.
+  validateRequest({ body: CreateOrderBody }),
   async (req: Request, res: Response) => {
     const { ticketId } = req.body;
     const tickets = new TicketRepository(getDb());
