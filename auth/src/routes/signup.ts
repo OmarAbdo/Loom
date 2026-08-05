@@ -1,22 +1,18 @@
 import express, { Request, Response } from 'express';
-import { body } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import { validateRequest, BadRequestError } from '@omarabdo/ticketing-common';
 import { getDb } from '../db/connection';
 import { UserRepository } from '../repositories/user-repository';
+import { SignupBody } from '../schemas';
 
 const router = express.Router();
 
 router.post(
   '/api/users/signup',
-  [
-    body('email').isEmail().withMessage('Email must be valid'),
-    body('password')
-      .trim()
-      .isLength({ min: 4, max: 20 })
-      .withMessage('Password must be between 4 and 20 characters'),
-  ],
-  validateRequest,
+  // Validated against SignupBody (src/schemas): the same schema documents this
+  // endpoint in the OpenAPI spec. Unknown keys are stripped before the handler
+  // runs, so `req.body` holds exactly `{ email, password }`.
+  validateRequest({ body: SignupBody }),
   async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const users = new UserRepository(getDb());

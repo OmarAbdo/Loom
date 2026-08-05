@@ -1,21 +1,19 @@
 import express, { Request, Response } from 'express';
-import { body } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import { validateRequest, BadRequestError } from '@omarabdo/ticketing-common';
 import { Password } from '../services/password';
 import { getDb } from '../db/connection';
 import { UserRepository } from '../repositories/user-repository';
+import { SigninBody } from '../schemas';
 
 const router = express.Router();
 
 router.post(
   '/api/users/signin',
-  [
-    body('email').isEmail().withMessage('Email must be valid'),
-    // [TODO] this will trim even intended spaces in the password.
-    body('password').trim().notEmpty().withMessage('You must supply a password'),
-  ],
-  validateRequest,
+  // Validated against SigninBody (src/schemas). The old `[TODO]` here — that
+  // express-validator's `.trim()` mangled passwords with intentional leading or
+  // trailing spaces — is resolved: SigninBody trims the email only.
+  validateRequest({ body: SigninBody }),
   async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const users = new UserRepository(getDb());
