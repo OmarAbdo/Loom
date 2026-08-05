@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * auth service — HTTP contracts (ADR-0007)
+ * auth service — HTTP contracts (ADR-0006)
  * =============================================================================
  *
  * The synchronous counterpart to the Avro `.avsc` files in `schemas/avro`.

@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * tickets service — HTTP contracts (ADR-0007)
+ * tickets service — HTTP contracts (ADR-0006)
  * =============================================================================
  *
  * The synchronous half of this service's contract surface. The asynchronous

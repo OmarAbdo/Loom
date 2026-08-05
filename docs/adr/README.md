@@ -13,3 +13,4 @@ Format used here is a lightweight variant of Michael Nygard's template.
 | [0003](0003-postgres-per-service.md) | Postgres-per-service via Kysely, replacing MongoDB | Accepted |
 | [0004](0004-infra-only-common.md) | The shared `common` package is infra-only | Accepted |
 | [0005](0005-keep-jwt-auth.md) | Keep the JWT-in-cookie auth (for now) | Accepted |
+| [0006](0006-zod-openapi-http-contracts.md) | HTTP contracts as Zod schemas, published as OpenAPI | Accepted |

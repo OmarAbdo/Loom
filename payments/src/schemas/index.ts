@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * payments service — HTTP contracts (ADR-0007)
+ * payments service — HTTP contracts (ADR-0006)
  * =============================================================================
  *
  * The synchronous half of this service's contract surface; the asynchronous
