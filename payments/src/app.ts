@@ -5,8 +5,10 @@ import {
   errorHandler,
   NotFoundError,
   currentUser,
+  serveDocs,
 } from '@omarabdo/ticketing-common';
 import { createChargeRouter } from './routes/new';
+import { openApiDocument } from './openapi';
 
 const app = express();
 app.set('trust proxy', true);
@@ -18,6 +20,10 @@ app.use(
   })
 );
 app.use(currentUser);
+
+// No `:id` route here to collide with, but the docs stay mounted above the
+// router for consistency with the other three services.
+serveDocs(app, openApiDocument, '/api/payments');
 
 app.use(createChargeRouter);
 

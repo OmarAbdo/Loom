@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-import { body } from 'express-validator';
 import {
   requireAuth,
   validateRequest,
@@ -12,14 +11,17 @@ import { getDb } from '../db/connection';
 import { OrderRepository } from '../repositories/order-repository';
 import { PaymentRepository } from '../repositories/payment-repository';
 import { PaymentCreatedPublisher } from '../events/publishers/payment-created-publisher';
+import { CreatePaymentBody } from '../schemas';
 
 const router = express.Router();
 
 router.post(
   '/api/payments',
   requireAuth,
-  [body('token').not().isEmpty(), body('orderId').not().isEmpty()],
-  validateRequest,
+  // The previous checks were bare `.not().isEmpty()` with no messages, so a
+  // missing field produced an errorless-looking 400. CreatePaymentBody carries
+  // explicit messages and additionally enforces uuid shape on orderId.
+  validateRequest({ body: CreatePaymentBody }),
   async (req: Request, res: Response) => {
     const { token, orderId } = req.body;
     const orders = new OrderRepository(getDb());
