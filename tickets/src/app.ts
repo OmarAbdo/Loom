@@ -5,11 +5,13 @@ import {
   errorHandler,
   NotFoundError,
   currentUser,
+  serveDocs,
 } from '@omarabdo/ticketing-common';
 import { createTicketRouter } from './routes/new';
 import { showTicketRouter } from './routes/show';
 import { indexTicketRouter } from './routes/index';
 import { updateTicketRouter } from './routes/update';
+import { openApiDocument } from './openapi';
 
 const app = express();
 app.set('trust proxy', true);
@@ -21,6 +23,11 @@ app.use(
   })
 );
 app.use(currentUser);
+
+// Docs FIRST — order is load-bearing here. `/api/tickets/:id` would otherwise
+// match `/api/tickets/docs` and treat "docs" as a ticket id, which now fails
+// TicketIdParam's uuid check and returns 400 instead of the Swagger page.
+serveDocs(app, openApiDocument, '/api/tickets');
 
 app.use(createTicketRouter);
 app.use(showTicketRouter);
