@@ -1,9 +1,17 @@
-# Ticketing — a Newman-aligned microservices reference
+# Loom — an event-driven ticketing marketplace
 
-A marketplace where users list tickets for events and buy each other's tickets.
-Originally the capstone project of an older learning course; this repository is a **deliberate refactor** of that project
-to reflect the patterns in Sam Newman's _Building Microservices_ (2nd ed.) and to
-use a modern, production-relevant stack.
+A marketplace where users list tickets for events and buy each other's tickets,
+built as six independently deployable microservices on Kubernetes. Buying a ticket
+runs as a **choreographed saga** over Apache Kafka, with Stripe payments, order
+expiry, Avro event contracts, and a PostgreSQL database per service guarded by
+optimistic concurrency control. The design follows the patterns in Sam Newman's
+_Building Microservices_ (2nd ed.), and every major decision is recorded in an ADR.
+
+**Provenance.** The project started from the baseline of a well-known microservices
+course (Stephen Grider's ticketing app: NATS Streaming, MongoDB, and a shared package
+carrying every event's TypeScript interface). The broker, persistence, event
+contracts, shared code, client and test suite were then re-architected to the stack
+below; the ADRs compare each choice with that baseline.
 
 ---
 
@@ -83,7 +91,10 @@ Full setup — secrets, hosts file, ingress-nginx install — is documented in
 
 ---
 
-## Migration status
+## Project history
 
-This repo is mid-migration from the old course's baseline. Progress and the phase plan
-live in [`docs/architecture/migration-plan.md`](docs/architecture/migration-plan.md).
+The re-architecture was carried out in phases (schemas, infra-only shared package,
+Kafka in KRaft mode, Postgres per service, service wiring, saga documentation, a
+testing pyramid with 78 backend tests, a React client rebuild, and an image and
+resource optimisation pass). The phase log lives in
+[`docs/architecture/migration-plan.md`](docs/architecture/migration-plan.md).
